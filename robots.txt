@@ -1,0 +1,4 @@
+﻿User-agent: *
+Allow: /
+
+Sitemap: https://nmb332.github.io/mussel-hmi/sitemap.xml
