@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>紫贻贝壳肉分离智能总控平台 - STM32 HMI 控制系统</title>
+  <meta name="description" content="紫贻贝壳肉分离智能总控平台，基于 STM32 的人机交互 HMI 控制界面，支持设备监控、参数设置、报警记录、操作记录和历史数据查询。">
+  <meta name="keywords" content="紫贻贝壳肉分离,STM32,HMI,智能总控平台,控制系统,报警记录,历史数据查询">
+  <meta name="robots" content="index,follow">
+  <meta name="author" content="紫贻贝壳肉分离控制系统">
+  <meta property="og:title" content="紫贻贝壳肉分离智能总控平台">
+  <meta property="og:description" content="基于 STM32 的紫贻贝壳肉分离 HMI 控制系统界面。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_CN">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="manifest" href="./site.webmanifest">
+</head>
+<body>
+  <section class="login-gate" id="loginGate" aria-label="系统登录">
+    <form class="login-card" id="loginForm">
+      <div class="login-brand">
+        <span class="brand-mark">STM32</span>
+        <div>
+          <p class="eyebrow">MUSSEL SEPARATION HMI</p>
+          <h1>紫贻贝壳肉分离</h1>
+          <small>智能总控平台入口</small>
+        </div>
+      </div>
+      <label>
+        <span>操作员账号</span>
+        <input id="loginUser" type="text" autocomplete="username" value="admin" required>
+      </label>
+      <label>
+        <span>登录密码</span>
+        <input id="loginPassword" type="password" autocomplete="current-password" value="123456" required>
+      </label>
+      <p class="login-error" id="loginError" aria-live="polite"></p>
+      <button class="btn primary login-submit" type="submit">进入系统</button>
+      <div class="login-link-row">
+        <button class="link-button" id="loginCopyAddressBtn" type="button">复制网页地址</button>
+        <a class="link-button" id="loginOpenAddressLink" href="./index.html">打开系统链接</a>
+      </div>
+    </form>
+  </section>
+
+  <section class="close-dialog" id="closeDialog" aria-label="关闭窗口提示" hidden>
+    <div class="close-card">
+      <h2>关闭窗口</h2>
+      <p>浏览器通常只允许关闭由脚本打开的窗口。如未自动关闭，可直接关闭当前标签页。</p>
+      <div class="close-actions">
+        <button class="btn primary" id="confirmCloseBtn" type="button">尝试关闭</button>
+        <button class="btn" id="cancelCloseBtn" type="button">返回系统</button>
+      </div>
+    </div>
+  </section>
+
+  <main class="hmi-shell">
+    <aside class="side-nav" aria-label="界面导航">
+      <div class="brand-block">
+        <span class="brand-mark">STM32</span>
+        <div>
+          <strong>紫贻贝壳肉分离</strong>
+          <small>智能总控平台</small>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" type="button" data-view="overview">
+          <span class="nav-icon">01</span>
+          <span>总控制界面</span>
+        </button>
+        <button class="nav-item" type="button" data-view="operate">
+          <span class="nav-icon">02</span>
+          <span>参数与 I/O</span>
+        </button>
+        <button class="nav-item" type="button" data-view="operations">
+          <span class="nav-icon">03</span>
+          <span>操作记录</span>
+        </button>
+        <button class="nav-item" type="button" data-view="alarms">
+          <span class="nav-icon">04</span>
+          <span>报警记录</span>
+        </button>
+        <button class="nav-item" type="button" data-view="history">
+          <span class="nav-icon">05</span>
+          <span>历史数据查询</span>
+        </button>
+      </nav>
+
+      <div class="side-status">
+        <span>通讯状态</span>
+        <strong id="sideConnectionText">未连接</strong>
+      </div>
+    </aside>
+
+    <section class="workbench">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">MUSSEL SEPARATION HMI</p>
+          <h1 id="viewTitle">总控制界面</h1>
+        </div>
+        <div class="connection-strip">
+          <button class="btn" id="copyAddressBtn" type="button">网页地址</button>
+          <a class="btn address-link" id="openAddressLink" href="./index.html">系统链接</a>
+          <button class="btn" id="logoutBtn" type="button">退出登录</button>
+          <button class="btn danger-outline" id="closeWindowBtn" type="button">关闭窗口</button>
+          <div class="port-state" id="portState">
+            <span class="state-dot"></span>
+            <span id="connectionText">未连接</span>
+          </div>
+          <select id="baudRate" aria-label="波特率">
+            <option value="9600">9600</option>
+            <option value="57600">57600</option>
+            <option value="115200" selected>115200</option>
+          </select>
+          <button class="btn primary" id="connectBtn" type="button">连接串口</button>
+          <button class="btn" id="disconnectBtn" type="button" disabled>断开</button>
+          <button class="btn accent" id="simulateBtn" type="button">开启模拟</button>
+        </div>
+      </header>
+
+      <section class="view active" data-view-panel="overview">
+        <section class="hero-grid">
+          <div class="system-card">
+            <div class="system-head">
+              <div>
+                <p class="eyebrow">SYSTEM STATE</p>
+                <h2>生产总览</h2>
+              </div>
+              <span class="timestamp" id="lastUpdate">--</span>
+            </div>
+
+            <div class="status-band">
+              <div class="status-cell large">
+                <span>运行</span>
+                <strong id="runValue">--</strong>
+              </div>
+              <div class="status-cell">
+                <span>模式</span>
+                <strong id="modeValue">--</strong>
+              </div>
+              <div class="status-cell">
+                <span>流程</span>
+                <strong id="processValue">--</strong>
+              </div>
+              <div class="status-cell warning">
+                <span>报警</span>
+                <strong id="alarmValue">--</strong>
+              </div>
+              <div class="status-cell danger">
+                <span>故障</span>
+                <strong id="faultValue">--</strong>
+              </div>
+            </div>
+
+            <div class="process-map" aria-label="工艺流程">
+              <div class="process-node active" data-proc-node="IDLE">
+                <span>待机</span>
+                <strong>准备</strong>
+              </div>
+              <div class="process-link"></div>
+              <div class="process-node" data-proc-node="FEED_TO_DRUM">
+                <span>送料</span>
+                <strong>传送带</strong>
+              </div>
+              <div class="process-link"></div>
+              <div class="process-node" data-proc-node="DRUM_SEPARATING">
+                <span>分离</span>
+                <strong>滚筒</strong>
+              </div>
+              <div class="process-link"></div>
+              <div class="process-node" data-proc-node="VIBRATORY_SORTING">
+                <span>筛分</span>
+                <strong>振动盘</strong>
+              </div>
+              <div class="process-link"></div>
+              <div class="process-node" data-proc-node="CYCLE_COMPLETE">
+                <span>完成</span>
+                <strong>批次</strong>
+              </div>
+            </div>
+          </div>
+
+          <section class="command-deck">
+            <div class="panel-heading">
+              <h2>核心控制</h2>
+              <div class="mode-toggle" role="group" aria-label="模式切换">
+                <button class="seg active" id="manualBtn" type="button">手动</button>
+                <button class="seg" id="autoBtn" type="button">自动</button>
+              </div>
+            </div>
+            <div class="command-row">
+              <button class="action start" id="startBtn" type="button">启动</button>
+              <button class="action stop" id="stopBtn" type="button">停止</button>
+              <button class="action reset" id="resetBtn" type="button">复位</button>
+              <button class="action estop" id="estopBtn" type="button">急停</button>
+            </div>
+            <div class="utility-row">
+              <button class="btn" id="statusBtn" type="button">读取状态</button>
+              <button class="btn" id="faultBtn" type="button">读取故障</button>
+              <button class="btn" id="saveBtn" type="button">保存参数</button>
+              <button class="btn" id="loadBtn" type="button">加载参数</button>
+            </div>
+          </section>
+        </section>
+
+        <section class="production-overview">
+          <div class="production-head">
+            <div>
+              <p class="eyebrow">PROCESS MONITOR</p>
+              <h2>加工进度</h2>
+            </div>
+            <button class="btn" id="resetProductionBtn" type="button">清零统计</button>
+          </div>
+          <div class="progress-block">
+            <div class="progress-meta">
+              <span>计划完成度</span>
+              <strong id="progressPercentValue">0%</strong>
+            </div>
+            <div class="progress-track" aria-label="计划完成度">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+          </div>
+          <div class="production-grid">
+            <div class="metric-card">
+              <span>计划加工时长</span>
+              <strong id="plannedTimeValue">30:00</strong>
+            </div>
+            <div class="metric-card">
+              <span>已加工时长</span>
+              <strong id="elapsedTimeValue">00:00</strong>
+            </div>
+            <div class="metric-card">
+              <span>预计剩余</span>
+              <strong id="remainingTimeValue">30:00</strong>
+            </div>
+            <div class="metric-card">
+              <span>完成批次</span>
+              <strong id="completedBatchValue">0</strong>
+            </div>
+            <div class="metric-card">
+              <span>完成重量</span>
+              <strong id="completedWeightValue">0.00 kg</strong>
+            </div>
+            <div class="metric-card">
+              <span>完成数量</span>
+              <strong id="completedPiecesValue">0 个</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="device-grid">
+          <div class="device-card">
+            <span>传送带</span>
+            <strong id="conveyorGaugeValue">55%</strong>
+            <div class="mini-track"><i id="conveyorGaugeFill"></i></div>
+          </div>
+          <div class="device-card">
+            <span>振动盘</span>
+            <strong id="vibratorGaugeValue">45%</strong>
+            <div class="mini-track"><i id="vibratorGaugeFill"></i></div>
+          </div>
+          <div class="device-card">
+            <span>滚筒</span>
+            <strong id="rollerGaugeValue">60%</strong>
+            <div class="mini-track"><i id="rollerGaugeFill"></i></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="operate">
+        <section class="split-grid">
+          <section class="panel parameter-panel" aria-label="参数输入">
+            <div class="panel-heading">
+              <h2>工艺参数</h2>
+              <button class="btn" id="preset1Btn" type="button">预设 1</button>
+            </div>
+            <div class="plan-grid" aria-label="加工计划输入">
+              <label>
+                <span>计划时长 min</span>
+                <input id="plannedMinutesInput" type="number" min="1" max="999" value="30">
+              </label>
+              <label>
+                <span>目标重量 kg</span>
+                <input id="targetWeightInput" type="number" min="0" max="9999" step="0.1" value="15">
+              </label>
+              <label>
+                <span>单批重量 kg</span>
+                <input id="batchWeightInput" type="number" min="0" max="999" step="0.01" value="0.5">
+              </label>
+              <label>
+                <span>单批数量 个</span>
+                <input id="batchPiecesInput" type="number" min="0" max="99999" value="20">
+              </label>
+            </div>
+            <div class="parameter-list">
+              <label class="parameter-item" for="conveyorInput">
+                <span><b>传送带速度</b><em>C</em></span>
+                <input id="conveyorRange" type="range" min="0" max="100" value="55">
+                <input id="conveyorInput" type="number" min="0" max="100" value="55">
+                <button class="btn apply" data-device="C" type="button">写入</button>
+              </label>
+              <label class="parameter-item" for="vibratorInput">
+                <span><b>振动盘强度</b><em>V</em></span>
+                <input id="vibratorRange" type="range" min="0" max="100" value="45">
+                <input id="vibratorInput" type="number" min="0" max="100" value="45">
+                <button class="btn apply" data-device="V" type="button">写入</button>
+              </label>
+              <label class="parameter-item" for="rollerInput">
+                <span><b>滚筒速度</b><em>R</em></span>
+                <input id="rollerRange" type="range" min="0" max="100" value="60">
+                <input id="rollerInput" type="number" min="0" max="100" value="60">
+                <button class="btn apply" data-device="R" type="button">写入</button>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel io-panel" aria-label="输入状态">
+            <div class="panel-heading">
+              <h2>I/O 输入反馈</h2>
+              <span class="timestamp" id="ioUpdateTime">--</span>
+            </div>
+            <div class="input-grid">
+              <div class="input-chip" id="estopChip"><span>急停</span><strong id="estopValue">--</strong></div>
+              <div class="input-chip" id="limitConveyorChip"><span>传送带限位</span><strong id="limitConveyorValue">--</strong></div>
+              <div class="input-chip" id="limitRollerChip"><span>滚筒限位</span><strong id="limitRollerValue">--</strong></div>
+              <div class="input-chip"><span>当前选中</span><strong id="selectedValue">--</strong></div>
+            </div>
+            <div class="simulator-controls" aria-label="模拟输入">
+              <button class="btn" id="simEStopBtn" type="button">模拟急停</button>
+              <button class="btn" id="simLimitConveyorBtn" type="button">传送带限位</button>
+              <button class="btn" id="simLimitRollerBtn" type="button">滚筒限位</button>
+              <button class="btn" id="simClearBtn" type="button">清除模拟故障</button>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="operations">
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <h2>操作记录</h2>
+            <button class="btn" id="clearOperationRecordsBtn" type="button">清空记录</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>来源</th>
+                  <th>操作内容</th>
+                  <th>结果</th>
+                </tr>
+              </thead>
+              <tbody id="operationRecordBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="alarms">
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <h2>报警记录</h2>
+            <button class="btn" id="clearAlarmRecordsBtn" type="button">清空记录</button>
+          </div>
+          <div class="alarm-summary">
+            <div><span>当前报警</span><strong id="currentAlarmSummary">正常</strong></div>
+            <div><span>累计报警</span><strong id="alarmCountValue">0</strong></div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>故障代码</th>
+                  <th>说明</th>
+                  <th>运行状态</th>
+                </tr>
+              </thead>
+              <tbody id="alarmRecordBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="view" data-view-panel="history">
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <h2>历史数据查询</h2>
+            <div class="query-tools">
+              <select id="historyFilter" aria-label="历史数据筛选">
+                <option value="ALL">全部记录</option>
+                <option value="RUNNING">运行记录</option>
+                <option value="ALARM">报警记录</option>
+                <option value="COMPLETE">完成批次</option>
+              </select>
+              <button class="btn" id="refreshHistoryBtn" type="button">查询</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>模式</th>
+                  <th>流程</th>
+                  <th>运行</th>
+                  <th>报警</th>
+                  <th>批次</th>
+                  <th>完成重量</th>
+                </tr>
+              </thead>
+              <tbody id="historyRecordBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel telemetry-panel" aria-label="实时通讯">
+          <div class="panel-heading">
+            <h2>实时通讯</h2>
+            <button class="btn" id="clearLogBtn" type="button">清空</button>
+          </div>
+          <div class="log-window" id="logWindow" aria-live="polite"></div>
+          <form class="manual-send" id="manualSendForm">
+            <input id="manualCommand" type="text" autocomplete="off" placeholder="STATUS">
+            <button class="btn primary" type="submit">发送</button>
+          </form>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>
