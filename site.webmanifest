@@ -1,0 +1,9 @@
+{
+  "name": "紫贻贝壳肉分离智能总控平台",
+  "short_name": "紫贻贝HMI",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#e9e2d3",
+  "theme_color": "#5f7f6a",
+  "lang": "zh-CN"
+}
